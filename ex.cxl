@@ -1,0 +1,13 @@
+import coal;
+
+import str;
+import list;
+import io;
+
+int main(string[] args) {
+    string ex1 = "based.win";
+    list ex2 = str::split(ex1, ".");
+
+    io::print(ex2[0]);
+    io::print(ex2[1]);
+}
