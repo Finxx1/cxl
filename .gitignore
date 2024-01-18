@@ -1,3 +1,5 @@
 vc140.pdb
 bin
 obj
+dbg.sh
+llvm/*/

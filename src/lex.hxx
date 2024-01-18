@@ -1,181 +1,128 @@
-const char* keywords[] = {
-    "import",
-    "void",
-    "const",
-    "class",
-    "break",
-    "continue",
-    "if",
-    "u8",
-    "u16",
-    "u32",
-    "u64",
-    "i8",
-    "i16",
-    "i32",
-    "i64",
-    "string",
-};
+// CXL - A programming language
+// This file is licensed under the BSD-2 Clause license.
 
-const char* operators[] = {
-    "+",
-    "-",
-    "*",
-    "/",
-    "%",
-    "++",
-    "--",
-    "==",
-    "!=",
-    ">",
-    "<",
-    ">=",
-    "<=",
-    "!",
-    "&&",
-    "||",
-    "~",
-    "&",
-    "|",
-    "^",
-    "=",
-    "+=",
-    "-=",
-    "*=",
-    "/=",
-    "%=",
-    "&=",
-    "|=",
-    "<<",
-    "<<=",
-    ">>",
-    ">>=",
-    "[",
-    "]",
-    ".",
-};
+#include "tokens.hxx"
 
-const char* delims[] = {
-    ";",
-    "{",
-    "}",
-    "(",
-    ")",
-    ",",
-    "::",
+enum class TokenType {
+    END,
+	NUMBER,
+	STRING,
+	KEYWORD,
+	OPERATOR,
+	DELIM,
+	ID,
 };
 
 struct Token {
-    enum {
-        STRLITERAL,
-        NUMLITERAL,
-        KEYWORD,
-        ID,
-        OPERATOR,
-        DELIM
-    } type;
-    char* str;
-    int len;
+	const char* str;
+	int len;
+	TokenType type;
 };
 
-bool lex(char* str, std::vector<Token>& tokens) {
-    char* cursor = str;
-    char* end = str;
-    while (end[0] != '\0') end++;
+class Lexer {
+	public:
+		const char* text;
+		unsigned long cursor;
+		unsigned long length;
+		
+		Lexer(const char* source);
 
-    while (cursor[0] != '\0') {
-        Token tok;
-        char* begin = cursor;
+		Token get_next_token();
+		void lex();
+};
 
-        if (cursor[0] == '"') {
-            cursor++;
-            while (cursor[0] != '"') {
-                if (cursor[0] == '\0') break;
-                if (cursor[0] == '\\') cursor++;
-                cursor++;
-            }
+Lexer::Lexer(const char* source) {
+	this->text = source;
+	this->cursor = 0;
+	this->length = strlen(source);
+}
 
-            tok.type = tok.STRLITERAL;
-            tok.len = cursor - begin - 1;
-            tok.str = begin + 1;
+Token Lexer::get_next_token() {
+	Token r;
 
-            cursor++;
-        } else if (isnum(cursor[0])) {
-            while (isnum(cursor[0])) {
-                if (cursor[0] == '\0') break;
-                cursor++;
-            }
+	for (const char* key : keywords) {
+		long keylength = strlen(key);
+		if (this->cursor + keylength > this->length) continue;
+		
+		if (my_strcmp(key, &this->text[this->cursor], keylength)) {
+			r.type = TokenType::KEYWORD;
+			r.str = key;
+			r.len = keylength;
 
-            tok.type = tok.NUMLITERAL;
-            tok.len = cursor - begin;
-            tok.str = begin;
-        } else if (my_isalpha(cursor[0])) {
-            for (const char* keyword : keywords) {
-                int len = strlen(keyword);
-                bool r = false;
+			return r;
+		}
+	}
 
-                if (len < end-cursor) {
-                    r = my_strcmp(keyword, (const char*)cursor, len);
-                }
+	for (const char* op : operators) {
+		long oplength = strlen(op);
+		if (this->cursor + oplength > this->length) continue;
+		
+		if (my_strcmp(op, &this->text[this->cursor], oplength)) {
+			r.type = TokenType::OPERATOR;
+			r.str = op;
+			r.len = oplength;
 
-                if (r) {
-                    tok.type = tok.KEYWORD;
-                    tok.len = len;
-                    tok.str = (char*)keyword;
-                    break;
-                }
-            }
+			return r;
+		}
+	}
 
-            while (my_isalpha(cursor[0] || isnum(cursor[0]))) {
-                if (cursor[0] == '\0') break;
-                cursor++;
-            }
+	for (const char* delim : delims) {
+		long delimlength = strlen(delim);
+		if (this->cursor + delimlength > this->length) continue;
+		
+		if (my_strcmp(delim, &this->text[this->cursor], delimlength)) {
+			r.type = TokenType::DELIM;
+			r.str = delim;
+			r.len = delimlength;
 
-            tok.type = tok.ID;
-            tok.len = cursor - begin;
-            tok.str = begin;
-        } else {
-            for (const char* op : operators) {
-                int len = strlen(op);
-                bool r = false;
+			return r;
+		}
+	}
 
-                if (len < end-cursor) {
-                    r = my_strcmp(op, (const char*)cursor, len);
-                }
+    if (my_is_num(this->text[this->cursor])) {
+        unsigned long begin = this->cursor;
 
-                if (r) {
-                    tok.type = tok.OPERATOR;
-                    tok.len = len;
-                    tok.str = (char*)op;
-                    break;
-                }
-            }
-
-            for (const char* delim : delims) {
-                int len = strlen(delim);
-                bool r = false;
-
-                if (len < end-cursor) {
-                    r = my_strcmp(delim, (const char*)cursor, len);
-                }
-
-                if (r) {
-                    tok.type = tok.DELIM;
-                    tok.len = len;
-                    tok.str = (char*)delim;
-                    cursor++;
-                    break;
-                }
-            }
+        while (my_is_num(this->text[this->cursor])) {
+            if (this->cursor >= this->length) break;
+            this->cursor++;
         }
-        
-        while (iswhitespace(cursor[0])) cursor++;
 
-        std::string str(tok.str, tok.len);
-        printf("Type: %d, Value: %s\n", tok.type, str.c_str());
+        r.type = TokenType::NUMBER;
+        r.str = &this->text[begin];
+        r.len = this->cursor - begin;
 
-        tokens.push_back(tok);
+        return r;
     }
 
-    return true;
+    if (this->text[this->cursor] == '"') {
+        unsigned long begin = this->cursor;
+
+        while (this->text[this->cursor] != '"' || this->text[this->cursor - 1] != '\\') {
+            if (this->cursor >= this->length) break;
+            this->cursor++;
+        }
+
+        r.type = TokenType::STRING;
+        r.str = &this->text[begin];
+        r.len = this->cursor - begin;
+
+        return r;
+    }
+    if (my_is_alpha(this->text[this->cursor])) {
+        unsigned long begin = this->cursor;
+
+        while (my_is_alpha(this->text[this->cursor])) {
+            if (this->cursor >= this->length) break;
+            this->cursor++;
+        }
+
+        r.type = TokenType::ID;
+        r.str = &this->text[begin];
+        r.len = this->cursor - begin;
+
+        return r;
+    }
+
+	r.type = TokenType::END;
+    return r;
 }

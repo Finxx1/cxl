@@ -6,12 +6,10 @@ tool_dir = tools
 obj_dir = obj
 bin_dir = bin
 src_dir = src
-inc_dir = inc
-lib_dir = lib
+inc_dir = llvm/include
+lib_dir = llvm/lib
 
 # For solely NMAKE
-lex = re2c.exe
-
 win_cflags = /EHsc /Zi
 win_ldflags = 
-win_libs = kernel32.lib
+win_libs = kernel32.lib LLVMCore.lib LLVMRemarks.lib LLVMBitstreamReader.lib LLVMBinaryFormat.lib LLVMTargetParser.lib LLVMSupport.lib LLVMDemangle.lib

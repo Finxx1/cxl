@@ -1,0 +1,1 @@
+Place LLVM in this folder. You can find binaries for windows at https://github.com/vovkos/llvm-package-windows/releases.
