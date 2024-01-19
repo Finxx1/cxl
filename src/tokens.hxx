@@ -1,3 +1,12 @@
+// CXL - A programming language
+// This file is licensed under the BSD-2 Clause license.
+
+//
+// This file contains every
+// keyword, operator, and
+// delimiter in CXL.
+//
+
 const char* keywords[] = {
 	"import",
 	"void",
@@ -63,5 +72,4 @@ const char* delims[] = {
 	")",
 	",",
 	"::",
-	" ",
 };

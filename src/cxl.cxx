@@ -148,8 +148,13 @@ int main(int argc, char** argv) {
 
     Token tok = lex.get_next_token();
 	while (tok.type != TokenType::END) {
+        if (!tok.str) {
+            tok = lex.get_next_token();
+            continue;
+        }
         std::string funny(tok.str, tok.len);
-        printf("%d - %s", tok.type, funny.c_str());
+        printf("          - %s\r", funny.c_str());
+        printf("%s\n", get_token_type_str(tok.type));
         tok = lex.get_next_token();
     }
 

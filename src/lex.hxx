@@ -1,7 +1,17 @@
 // CXL - A programming language
 // This file is licensed under the BSD-2 Clause license.
 
-#include "tokens.hxx"
+//
+// This file contains the lexer.
+// It is a simple lexer written
+// by hand. It handles EOF by
+// constantly checking for the
+// position of the cursor, and
+// breaking any loops if it ever
+// is greater than the length.
+//
+
+#include "tokens.hxx" // keywords, operators, and delims
 
 enum class TokenType {
     END,
@@ -11,7 +21,13 @@ enum class TokenType {
 	OPERATOR,
 	DELIM,
 	ID,
+    WHITESPACE,
 };
+
+const char* TokenTypeStr[] = {"END", "NUMBER", "STRING", "KEYWORD", "OPERATOR", "DELIM", "ID", "WHITESPACE"};
+const char* get_token_type_str(TokenType type) {
+    return TokenTypeStr[(long)type];
+}
 
 struct Token {
 	const char* str;
@@ -40,6 +56,13 @@ Lexer::Lexer(const char* source) {
 Token Lexer::get_next_token() {
 	Token r;
 
+    if (this->cursor > this->length) {
+        r.type = TokenType::END;
+        r.len = 0;
+        r.str = NULL;
+        return r;
+    }
+
 	for (const char* key : keywords) {
 		long keylength = strlen(key);
 		if (this->cursor + keylength > this->length) continue;
@@ -48,6 +71,8 @@ Token Lexer::get_next_token() {
 			r.type = TokenType::KEYWORD;
 			r.str = key;
 			r.len = keylength;
+
+            this->cursor += keylength;
 
 			return r;
 		}
@@ -62,6 +87,8 @@ Token Lexer::get_next_token() {
 			r.str = op;
 			r.len = oplength;
 
+            this->cursor += oplength;
+
 			return r;
 		}
 	}
@@ -74,6 +101,8 @@ Token Lexer::get_next_token() {
 			r.type = TokenType::DELIM;
 			r.str = delim;
 			r.len = delimlength;
+            
+            this->cursor += delimlength;
 
 			return r;
 		}
@@ -95,9 +124,10 @@ Token Lexer::get_next_token() {
     }
 
     if (this->text[this->cursor] == '"') {
+        this->cursor++;
         unsigned long begin = this->cursor;
 
-        while (this->text[this->cursor] != '"' || this->text[this->cursor - 1] != '\\') {
+        while (this->text[this->cursor] != '"') {
             if (this->cursor >= this->length) break;
             this->cursor++;
         }
@@ -106,12 +136,14 @@ Token Lexer::get_next_token() {
         r.str = &this->text[begin];
         r.len = this->cursor - begin;
 
+        this->cursor++;
         return r;
     }
     if (my_is_alpha(this->text[this->cursor])) {
         unsigned long begin = this->cursor;
+        this->cursor++;
 
-        while (my_is_alpha(this->text[this->cursor])) {
+        while (my_is_alpha(this->text[this->cursor]) || my_is_num(this->text[this->cursor])) {
             if (this->cursor >= this->length) break;
             this->cursor++;
         }
@@ -123,6 +155,9 @@ Token Lexer::get_next_token() {
         return r;
     }
 
-	r.type = TokenType::END;
+	r.type = TokenType::WHITESPACE;
+    r.len = 0;
+    r.str = NULL;
+    this->cursor++;
     return r;
 }
