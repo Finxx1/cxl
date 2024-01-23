@@ -1,6 +1,15 @@
 // CXL - A programming language
 // This file is licensed under the BSD-2 Clause license.
 
+//
+// This file is the main file.
+// It is the only one that is
+// compiled. Everything else
+// is just included. Think of
+// it as the "driver".
+//
+
+//
 // Objectives of CXL:
 // C, but:
 // - With a better, more capable standard library (like Python)
@@ -8,7 +17,8 @@
 // - Without pointers (like .NET)
 // - Without the preprocessor (like non-C/C++ languages)
 // - With namespaces (like C++)
-// Code optimization and generation is done by GCC using libgccjit
+// Code optimization and generation is done with LLVM.
+//
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,11 +28,14 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
-#include "util.hxx"
+#include "./util.hxx"
+#include "./platform.hxx"
 
-#include "pre.hxx"
-#include "lex.hxx"
+#include "./pre.hxx"
+#include "./lex.hxx"
+#include "./parser.hxx"
 
 const char* usage =
 "cxl file [options]";
@@ -46,8 +59,6 @@ struct {
 	bool quiet;
 
 	std::vector<int> lib_dir_indicies;
-
-	std::vector<Token> tokens;
 } compiler_globals = {0};
 
 int main(int argc, char** argv) {
@@ -67,8 +78,7 @@ int main(int argc, char** argv) {
 					i++;
 
 					if (compiler_globals.out_file_set) {
-						printf("Error: Only one output executable can be compiled at a time.\n");
-						exit(1);
+                        CXL_ERROR("only one output executable can be compiled at a time.");
 					}
 
 					compiler_globals.out_file_index = i;
@@ -90,14 +100,13 @@ int main(int argc, char** argv) {
 					break;
 				}
 				default: {
-					printf("Warning: Ignoring unknown option '-%c'.\n", argv[i][1]);
+					CXL_WARNING("ignoring unknown option '-%c'.", argv[i][1]);
 					break;
 				}
 			}
 		} else {
 			if (compiler_globals.src_file_set) {
-				printf("Error: Only one source file can be compiled at a time.\n");
-				exit(1);
+				CXL_ERROR("only one source file can be compiled at a time.");
 			}
 
 			compiler_globals.src_file_index = i;
@@ -106,18 +115,17 @@ int main(int argc, char** argv) {
 	}
 
 	if (!compiler_globals.src_file_set) {
-		printf("Error: No source file specified.\n");
+		CXL_ERROR("no source file specified.");
 		exit(1);
 	}
 
 	if (!compiler_globals.quiet) {
-		printf("CXL Compiler, v0.1.0 (c) BSD-2 Clause ()\n\n");
+		printf("CXL Compiler, v0.1.0 (c) BSD-2 Clause (%s)\n\n", CXL_STRINGIZE(COMPILER));
 	}
 
 	FILE* fp = fopen(argv[compiler_globals.src_file_index], "rb");
 	if (!fp) {
-		printf("Error: Failed to open file '%s'.\n", argv[compiler_globals.src_file_index]);
-		exit(1);
+		CXL_ERROR("failed to open file '%s'.\n", argv[compiler_globals.src_file_index]);
 	}
 
 	fseek(fp, 0, SEEK_END);
@@ -126,14 +134,12 @@ int main(int argc, char** argv) {
 
 	char* filedata = (char*)malloc(len + 1);
 	if (!filedata) {
-		printf("Error: Failed to allocation %ld bytes of memory.", len + 1);
-		exit(1);
+		CXL_ERROR("failed to allocation %ld bytes of memory.", len + 1);
 	}
 
 	if (int bytes_read = fread(filedata, 1, len, fp) != len) {
-		printf("Error: Failed to read file '%s'. %d bytes read of %d.\n", argv[compiler_globals.src_file_index], bytes_read, len);
-		free(filedata);
-		exit(1);
+        free(filedata);
+		CXL_ERROR("failed to read file '%s'. %d bytes read of %d.\n", argv[compiler_globals.src_file_index], bytes_read, len);
 	}
 	filedata[len] = 0;
 
@@ -144,19 +150,13 @@ int main(int argc, char** argv) {
 		printf("%s", filedata);
 	}
 
-    Lexer lex(filedata);
+    std::vector<Token> tokens;
 
-    Token tok = lex.get_next_token();
-	while (tok.type != TokenType::END) {
-        if (!tok.str) {
-            tok = lex.get_next_token();
-            continue;
-        }
-        std::string funny(tok.str, tok.len);
-        printf("          - %s\r", funny.c_str());
-        printf("%s\n", get_token_type_str(tok.type));
-        tok = lex.get_next_token();
-    }
+    Lexer lex(filedata);
+    lex.lex(tokens);
+
+    ASTRoot root;
+    
 
 	exit(0);
 }

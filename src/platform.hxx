@@ -1,3 +1,6 @@
+// CXL - A programming language
+// This file is licensed under the BSD-2 Clause license.
+
 #ifdef _MSC_VER
 #define COMPILER MSVC
 #endif

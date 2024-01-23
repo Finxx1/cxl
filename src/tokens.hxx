@@ -10,11 +10,13 @@
 const char* keywords[] = {
 	"import",
 	"void",
-	"const",
 	"class",
 	"break",
 	"continue",
 	"if",
+};
+
+const char* types[] = {
 	"u8",
 	"u16",
 	"u32",

@@ -17,14 +17,15 @@ enum class TokenType {
     END,
 	NUMBER,
 	STRING,
+    TYPE,
 	KEYWORD,
 	OPERATOR,
 	DELIM,
 	ID,
-    WHITESPACE,
+    UNKNOWN,
 };
 
-const char* TokenTypeStr[] = {"END", "NUMBER", "STRING", "KEYWORD", "OPERATOR", "DELIM", "ID", "WHITESPACE"};
+const char* TokenTypeStr[] = {"END", "NUMBER", "STRING", "KEYWORD", "OPERATOR", "DELIM", "ID", "UNKNOWN"};
 const char* get_token_type_str(TokenType type) {
     return TokenTypeStr[(long)type];
 }
@@ -44,7 +45,7 @@ class Lexer {
 		Lexer(const char* source);
 
 		Token get_next_token();
-		void lex();
+		void lex(std::vector<Token>& tokens);
 };
 
 Lexer::Lexer(const char* source) {
@@ -69,6 +70,21 @@ Token Lexer::get_next_token() {
 		
 		if (my_strcmp(key, &this->text[this->cursor], keylength)) {
 			r.type = TokenType::KEYWORD;
+			r.str = key;
+			r.len = keylength;
+
+            this->cursor += keylength;
+
+			return r;
+		}
+	}
+
+	for (const char* key : types) {
+		long keylength = strlen(key);
+		if (this->cursor + keylength > this->length) continue;
+		
+		if (my_strcmp(key, &this->text[this->cursor], keylength)) {
+			r.type = TokenType::TYPE;
 			r.str = key;
 			r.len = keylength;
 
@@ -155,9 +171,22 @@ Token Lexer::get_next_token() {
         return r;
     }
 
-	r.type = TokenType::WHITESPACE;
+	r.type = TokenType::UNKNOWN;
     r.len = 0;
     r.str = NULL;
     this->cursor++;
     return r;
+}
+
+void Lexer::lex(std::vector<Token>& tokens) {
+    Token tok = this->get_next_token();
+	while (tok.type != TokenType::END) {
+        if (!tok.str) {
+            tok = this->get_next_token();
+            continue;
+        }
+        
+        tokens.push_back(tok);
+        tok = this->get_next_token();
+    }
 }
